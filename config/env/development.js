@@ -11,13 +11,19 @@
  */
 
 module.exports = {
-
   /***************************************************************************
    * Set the default database connection for models in the development       *
    * environment (see config/connections.js and config/models.js )           *
    ***************************************************************************/
-     
+
   // models: {
   //   connection: 'someMongodbServer'
   // }
+  RABBITMQ_HOST: "localhost",
+  RABBITMQ_PORT: "5672",
+  REDIS_HOST: "localhost",
+  REDIS_PORT: "6379",
+  bpsUrl: "http://192.168.1.92:1333", //link BPSService
+  bpsTimeout: 120000,
+  port: process.env.PORT || 1347
 };

@@ -1,20 +1,20 @@
-var bcrypt = require('bcryptjs'),
-  moment = require('moment'),
-  passport = require('passport'),
-  BearerStrategy = require('passport-http-bearer').Strategy,
-  BasicStrategy = require('passport-http').BasicStrategy,
-  LocalStrategy = require('passport-local').Strategy,
-  ClientPasswordStrategy = require('passport-oauth2-client-password').Strategy;
-var request = require('request');
-const execFunction = '/ExecStatement/execFunction';
-const execProcedure = '/ExecStatement/execProcedure';
-const execStatement = '/ExecStatement/execStatement';
-passport.serializeUser(function (user, done) {
+var bcrypt = require("bcryptjs"),
+  moment = require("moment"),
+  passport = require("passport"),
+  BearerStrategy = require("passport-http-bearer").Strategy,
+  BasicStrategy = require("passport-http").BasicStrategy,
+  LocalStrategy = require("passport-local").Strategy,
+  ClientPasswordStrategy = require("passport-oauth2-client-password").Strategy;
+var request = require("request");
+const execFunction = "/ExecStatement/execFunction";
+const execProcedure = "/ExecStatement/execProcedure";
+const execStatement = "/ExecStatement/execStatement";
+passport.serializeUser(function(user, done) {
   done(null, user.id);
 });
 
-passport.deserializeUser(function (id, done) {
-  User.findOne({ id: id }, function (err, user) {
+passport.deserializeUser(function(id, done) {
+  User.findOne({ id: id }, function(err, user) {
     done(err, user);
   });
 });
@@ -29,95 +29,138 @@ passport.deserializeUser(function (id, done) {
 
 //check username and password registered
 passport.use(
-  new LocalStrategy(
-    function (username, password, next) {
-      sails.log.info('Login LocalStrategy(', username, 'passsword', ') BEGIN');
-      process.nextTick(
-        function () {
-          sails.log.info('Login LocalStrategy(', username, 'passsword', ') BEGIN request!!!');
-          try {
-            request({
-              url: sails.config.bpsUrl + execProcedure,
-              method: 'POST',
-              json: {
-                funckey: 'fopks_sa.Sp_login',
-                bindvar: {
-                  username: username,
-                  password: password,
-                  tlid: { 'dir': 3003, 'type': 2001 },
-                  tlfullname: { 'dir': 3003, 'type': 2001 },
-                  err_code: { 'dir': 3003, 'type': 2001 },
-                  err_param: { 'dir': 3003, 'type': 2001 }
-                }
-              },
-              timeout: sails.config.bpsTimeout,
-            }, function (err, res) {
-              if (err) {
-                sails.log.error('Login LocalStrategy Error.:', username, 'error', err);
-                return next(err);
-              } else {
-                sails.log.info('Login LocalStrategy', username, 'Result=', res.body);
-                if (parseInt(res.body.EC) != 0) {
-                  let message = res.body.EM
-                  ErrDefs.findOne({ ERRNUM: res.body.EC }).exec((err, errdefs) => {
+  new LocalStrategy(function(username, password, next) {
+    sails.log.info("Login LocalStrategy(", username, "passsword", ") BEGIN");
+    process.nextTick(function() {
+      sails.log.info(
+        "Login LocalStrategy(",
+        username,
+        "passsword",
+        ") BEGIN request!!!"
+      );
+      try {
+        request(
+          {
+            url: sails.config.bpsUrl + execProcedure,
+            method: "POST",
+            json: {
+              funckey: "fopks_sa.Sp_login",
+              bindvar: {
+                username: username,
+                password: password,
+                tlid: { dir: 3003, type: 2001 },
+                tlfullname: { dir: 3003, type: 2001 },
+                err_code: { dir: 3003, type: 2001 },
+                err_param: { dir: 3003, type: 2001 }
+              }
+            },
+            timeout: sails.config.bpsTimeout
+          },
+          function(err, res) {
+            if (err) {
+              sails.log.error(
+                "Login LocalStrategy Error.:",
+                username,
+                "error",
+                err
+              );
+              return next(err);
+            } else {
+              sails.log.info(
+                "Login LocalStrategy",
+                username,
+                "Result=",
+                res.body
+              );
+              if (parseInt(res.body.EC) != 0) {
+                let message = res.body.EM;
+                ErrDefs.findOne({ ERRNUM: res.body.EC }).exec(
+                  (err, errdefs) => {
                     if (err) {
-                      rs.EM = "Lỗi thực hiện trên redis"
-
+                      rs.EM = "Lỗi thực hiện trên redis";
                     }
-                    message = "Mã lỗi " + res.body.EC + '-';
-                    if (errdefs)
-                      message += errdefs.ERRDESC
+                    message = "Mã lỗi " + res.body.EC + "-";
+                    if (errdefs) message += errdefs.ERRDESC;
                     else {
-                      message += ' Mã lỗi chưa được khai báo '
+                      message += " Mã lỗi chưa được khai báo ";
                     }
 
-                    return next(null, false, { message: message });;
-                  })
-
-                } else {
-                  if (parseInt(res.body.DT.err_code) != 0) {
-                    sails.log.debug('Login LocalStrategy', username, 'BPS Error=',
-                      res.body.DT.err_code, " msg=", res.body.DT.err_param);
-                    return next(null, false, { message: res.body.DT.err_param });
-                  } else {
-                    sails.log.debug('Login LocalStrategy', username, 'Find user in redis cache');
-                    User.findOne({
-                      username: username
-                    }).exec(function (err, user) {
-                      if (err) {
-                        return next(err);
-                      }
-                      if (!user) {
-                        var newuser = {
-                          username: username,
-                          tlid: res.body.DT.tlid,
-                          password: username,
-                          fullname: res.body.DT.tlfullname
-                        };
-                        User.create(newuser).exec(function (err, user) {
-                          if (err) {
-                            sails.log.error('Login LocalStrategy Error.:', username, 'user error.:', err);
-                            return next(null, false, { message: 'Không khởi tạo được user!' });
-                          }
-                          sails.log.info("New user created"
-                            + "- username: " + user.username
-                            + "- tlid: " + user.tlid
-                            + "- fullname: " + user.fullname);
-                          return next(null, user);
-                        });
-                      } else {
-                        return next(null, user);
-                      }
-                    });
+                    return next(null, false, { message: message });
                   }
+                );
+              } else {
+                if (parseInt(res.body.DT.err_code) != 0) {
+                  sails.log.debug(
+                    "Login LocalStrategy",
+                    username,
+                    "BPS Error=",
+                    res.body.DT.err_code,
+                    " msg=",
+                    res.body.DT.err_param
+                  );
+                  return next(null, false, { message: res.body.DT.err_param });
+                } else {
+                  sails.log.debug(
+                    "Login LocalStrategy",
+                    username,
+                    "Find user in redis cache"
+                  );
+                  User.findOne({
+                    username: username
+                  }).exec(function(err, user) {
+                    if (err) {
+                      return next(err);
+                    }
+                    if (!user) {
+                      var newuser = {
+                        username: username,
+                        tlid: res.body.DT.tlid,
+                        password: username,
+                        fullname: res.body.DT.tlfullname
+                      };
+                      User.create(newuser).exec(function(err, user) {
+                        if (err) {
+                          sails.log.error(
+                            "Login LocalStrategy Error.:",
+                            username,
+                            "user error.:",
+                            err
+                          );
+                          return next(null, false, {
+                            message: "Không khởi tạo được user!"
+                          });
+                        }
+                        sails.log.info(
+                          "New user created" +
+                            "- username: " +
+                            user.username +
+                            "- tlid: " +
+                            user.tlid +
+                            "- fullname: " +
+                            user.fullname
+                        );
+                        return next(null, user);
+                      });
+                    } else {
+                      return next(null, user);
+                    }
+                  });
                 }
               }
-            });
-          } catch (e) {
-            sails.log.error('Login LocalStrategy nextTick Error.:', username, 'error.:', err);
+            }
           }
-        });
-    }));
+        );
+      } catch (e) {
+        sails.log.error(
+          "Login LocalStrategy nextTick Error.:",
+          username,
+          "error.:",
+          err
+        );
+      }
+    });
+  })
+);
 
 /**
  * BasicStrategy & ClientPasswordStrategy
@@ -135,54 +178,63 @@ var errdata = {
   EEC: -1,
   status: "err"
 };
-passport.use(new BasicStrategy(
+passport.use(
+  new BasicStrategy(function(username, password, done) {
+    sails.log.info(
+      "* BasicStrategy & ClientPasswordStrategy",
+      "username ",
+      username
+    );
 
-  function (username, password, done) {
-    sails.log.info('* BasicStrategy & ClientPasswordStrategy', 'username ', username);
-
-    User.findOne({
-      username: username
-    }, function (err, user) {
-
-      if (err) {
-        return done(err);
-      }
-      if (!user) {
-        return done(null, false);
-      }
-      bcrypt.compare(password, user.hashedPassword, function (err, res) {
+    User.findOne(
+      {
+        username: username
+      },
+      function(err, user) {
         if (err) {
-          return done(err, null);
-        } else {
-          if (!res) {
-            return done(null, false, { message: 'Invalid password' });
-          } else {
-            return done(null, user);
-          }
+          return done(err);
         }
-      });
-    });
-  }));
+        if (!user) {
+          return done(null, false);
+        }
+        bcrypt.compare(password, user.hashedPassword, function(err, res) {
+          if (err) {
+            return done(err, null);
+          } else {
+            if (!res) {
+              return done(null, false, { message: "Invalid password" });
+            } else {
+              return done(null, user);
+            }
+          }
+        });
+      }
+    );
+  })
+);
 //when has code and get tocken
-passport.use(new ClientPasswordStrategy(
-
-  function (clientId, clientSecret, done) {
-    sails.log.info('passport.use(new ClientPasswordStrategy())');
-    Client.findOne({
-      clientId: clientId
-    }, function (err, client) {
-      if (err) {
-        return done(err);
+passport.use(
+  new ClientPasswordStrategy(function(clientId, clientSecret, done) {
+    sails.log.info("passport.use(new ClientPasswordStrategy())");
+    Client.findOne(
+      {
+        clientId: clientId
+      },
+      function(err, client) {
+        if (err) {
+          return done(err);
+        }
+        if (!client) {
+          return done(null, false);
+        }
+        if (client.clientSecret != clientSecret) {
+          return done(null, false);
+        }
+        return done(null, client);
       }
-      if (!client) {
-        return done(null, false);
-      }
-      if (client.clientSecret != clientSecret) {
-        return done(null, false);
-      }
-      return done(null, client);
-    });
-  }));
+    );
+  })
+);
 
 /**
  * BearerStrategy
@@ -192,33 +244,44 @@ passport.use(new ClientPasswordStrategy(
  * application, which is issued an access token to make requests on behalf of
  * the authorizing user.
  */
-passport.use(new BearerStrategy(
-  function (accessToken, done) {
-    sails.log.info('passport.use(new BearerStrategy())', accessToken);
+passport.use(
+  new BearerStrategy(function(accessToken, done) {
+    sails.log.info("passport.use(new BearerStrategy())", accessToken);
 
-    AccessToken.findOne({ token: accessToken }, function (err, token) {
-      if (err) { return done(err); }
-      if (!token) { sails.log.info('passport.use(new BearerStrategy(', 'ko co token'); return done(null, false); }
+    AccessToken.findOne({ token: accessToken }, function(err, token) {
+      if (err) {
+        return done(err);
+      }
+      if (!token) {
+        sails.log.info("passport.use(new BearerStrategy(", "ko co token");
+        return done(null, false);
+      }
 
       var now = moment().unix();
       var creationDate = moment(token.createdAt).unix();
 
       if (now - creationDate > sails.config.oauth.tokenLife) {
-        AccessToken.destroy({ token: accessToken }, function (err) {
+        AccessToken.destroy({ token: accessToken }, function(err) {
           if (err) return done(err);
         });
-        sails.log.info('Token expired', accessToken, now, creationDate, sails.config.oauth.tokenLife);
-        return done(null, false, { message: 'Token expired' });
+        sails.log.info(
+          "Token expired",
+          accessToken,
+          now,
+          creationDate,
+          sails.config.oauth.tokenLife
+        );
+        return done(null, false, { message: "Token expired" });
       }
       //
       sails.log.info("passport from token=" + token.userId);
       var info = { scope: token.scope };
       User.findOne({
         username: token.userId
-      }).exec(function (err, user) {
-        sails.log.info('passport.use.: BearerStrategy   ', user);
+      }).exec(function(err, user) {
+        sails.log.info("passport.use.: BearerStrategy   ", user);
         done(err, user, info);
       });
     });
-  }
-));
+  })
+);

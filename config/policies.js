@@ -16,35 +16,31 @@
  * http://sailsjs.org/#!/documentation/reference/sails.config/sails.config.policies.html
  */
 
-
 module.exports.policies = {
-
   /***************************************************************************
-  *                                                                          *
-  * Default policy for all controllers and actions (`true` allows public     *
-  * access)                                                                  *
-  *                                                                          *
-  ***************************************************************************/
+   *                                                                          *
+   * Default policy for all controllers and actions (`true` allows public     *
+   * access)                                                                  *
+   *                                                                          *
+   ***************************************************************************/
 
-  '*': true,
+  "*": true,
 
   InfoController: {
-    index: ['oauthBearer(\'info\')']
+    index: ["oauthBearer('info')"]
   },
   AuthorizeController: {
-    getAll: ['oauthBearer(\'info\')'],
-    get: ['oauthBearer(\'info\')'],
-    update: ['oauthBearer(\'info\')'],
-    add: ['oauthBearer(\'info\')']
+    getAll: ["oauthBearer('info')"],
+    get: ["oauthBearer('info')"],
+    update: ["oauthBearer('info')"],
+    add: ["oauthBearer('info')"]
   },
   CommandflexController: {
-    
-    add: ['oauthBearer(\'info\')']
+    add: ["oauthBearer('info')"]
   },
   UserIndexController: {
-    getAll: ['oauthBearer(\'info\')'],
-    search: ['oauthBearer(\'info\')'],
-    search: ['oauthBearer(\'info\')']
+    getAll: ["oauthBearer('info')"],
+    search: ["oauthBearer('info')"],
+    search: ["oauthBearer('info')"]
   }
-
 };
