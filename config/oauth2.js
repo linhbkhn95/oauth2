@@ -7,12 +7,12 @@ var flash = require("connect-flash");
 // Create OAuth 2.0 server
 var server = oauth2orize.createServer();
 
-server.serializeClient(function(client, done) {
+server.serializeClient(function (client, done) {
   return done(null, client.id);
 });
 
-server.deserializeClient(function(id, done) {
-  Client.findOne(id, function(err, client) {
+server.deserializeClient(function (id, done) {
+  Client.findOne(id, function (err, client) {
     if (err) {
       return done(err);
     }
@@ -22,14 +22,14 @@ server.deserializeClient(function(id, done) {
 
 // Generate authorization code
 server.grant(
-  oauth2orize.grant.code(function(client, redirectURI, user, ares, done) {
+  oauth2orize.grant.code(function (client, redirectURI, user, ares, done) {
     console.log("server.grant(oauth2orize.grant.code(function(client");
     Authcode.create({
       clientId: client.clientId,
       redirectURI: redirectURI,
       userId: user.username,
       scope: ares.scope
-    }).exec(function(err, code) {
+    }).exec(function (err, code) {
       if (err) {
         return done(err, null);
       }
@@ -41,17 +41,21 @@ server.grant(
 // Generate access token for Implicit flow
 // Only access token is generated in this flow, no refresh token is issued
 server.grant(
-  oauth2orize.grant.token(function(client, user, ares, done) {
+  oauth2orize.grant.token(function (client, user, ares, done) {
     console.log("Generate access token for Implicit flow");
-    AccessToken.destroy(
-      { userId: user.username, clientId: client.clientId },
-      function(err) {
+    AccessToken.destroy({
+        userId: user.username,
+        clientId: client.clientId
+      },
+      function (err) {
         if (err) {
           return done(err);
         } else {
-          AccessToken.create(
-            { userId: user.username, clientId: client.clientId },
-            function(err, accessToken) {
+          AccessToken.create({
+              userId: user.username,
+              clientId: client.clientId
+            },
+            function (err, accessToken) {
               if (err) {
                 return done(err);
               } else {
@@ -68,12 +72,12 @@ server.grant(
 // Exchange authorization code for access token
 //get tocken from oauth server
 server.exchange(
-  oauth2orize.exchange.code(function(client, code, redirectURI, scope, done) {
+  oauth2orize.exchange.code(function (client, code, redirectURI, scope, done) {
     console.log("Exchange authorization code for access token line 56 scope ");
     console.log(scope);
     Authcode.findOne({
       code: code
-    }).exec(function(err, code) {
+    }).exec(function (err, code) {
       console.log("  }).exec(function(err,code){ ");
       console.log(code);
       if (err || !code) {
@@ -87,40 +91,46 @@ server.exchange(
       }
 
       // Remove Refresh and Access tokens and create new ones
-      RefreshToken.destroy(
-        { userId: code.userId, clientId: code.clientId },
-        function(err) {
+      RefreshToken.destroy({
+          userId: code.userId,
+          clientId: code.clientId
+        },
+        function (err) {
           if (err) {
             return done(err);
           } else {
-            AccessToken.destroy(
-              { userId: code.userId, clientId: code.clientId },
-              function(err) {
+            AccessToken.destroy({
+                userId: code.userId,
+                clientId: code.clientId
+              },
+              function (err) {
                 if (err) {
                   return done(err);
                 } else {
-                  RefreshToken.create(
-                    { userId: code.userId, clientId: code.clientId },
-                    function(err, refreshToken) {
+                  RefreshToken.create({
+                      userId: code.userId,
+                      clientId: code.clientId
+                    },
+                    function (err, refreshToken) {
                       if (err) {
                         return done(err);
                       } else {
                         //add scope to accessToken
-                        AccessToken.create(
-                          {
+                        AccessToken.create({
                             userId: code.userId,
                             clientId: code.clientId,
                             scope: code.scope
                           },
-                          function(err, accessToken) {
+                          function (err, accessToken) {
                             if (err) {
                               return done(err);
                             } else {
                               return done(
                                 null,
                                 accessToken.token,
-                                refreshToken.token,
-                                { expires_in: sails.config.oauth.tokenLife }
+                                refreshToken.token, {
+                                  expires_in: sails.config.oauth.tokenLife
+                                }
                               );
                             }
                           }
@@ -140,7 +150,7 @@ server.exchange(
 
 // Exchange username & password for access token.
 server.exchange(
-  oauth2orize.exchange.password(function(
+  oauth2orize.exchange.password(function (
     client,
     username,
     password,
@@ -148,7 +158,9 @@ server.exchange(
     done
   ) {
     console.log("// Exchange username & password for access token.");
-    User.findOne({ username: username }, function(err, user) {
+    User.findOne({
+      username: username
+    }, function (err, user) {
       if (err) {
         return done(err);
       }
@@ -162,35 +174,44 @@ server.exchange(
       }
 
       // Remove Refresh and Access tokens and create new ones
-      RefreshToken.destroy(
-        { userId: user.username, clientId: client.clientId },
-        function(err) {
+      RefreshToken.destroy({
+          userId: user.username,
+          clientId: client.clientId
+        },
+        function (err) {
           if (err) {
             return done(err);
           } else {
-            AccessToken.destroy(
-              { userId: user.username, clientId: client.clientId },
-              function(err) {
+            AccessToken.destroy({
+                userId: user.username,
+                clientId: client.clientId
+              },
+              function (err) {
                 if (err) {
                   return done(err);
                 } else {
-                  RefreshToken.create(
-                    { userId: user.username, clientId: client.clientId },
-                    function(err, refreshToken) {
+                  RefreshToken.create({
+                      userId: user.username,
+                      clientId: client.clientId
+                    },
+                    function (err, refreshToken) {
                       if (err) {
                         return done(err);
                       } else {
-                        AccessToken.create(
-                          { userId: user.username, clientId: client.clientId },
-                          function(err, accessToken) {
+                        AccessToken.create({
+                            userId: user.username,
+                            clientId: client.clientId
+                          },
+                          function (err, accessToken) {
                             if (err) {
                               return done(err);
                             } else {
                               done(
                                 null,
                                 accessToken.token,
-                                refreshToken.token,
-                                { expires_in: sails.config.oauth.tokenLife }
+                                refreshToken.token, {
+                                  expires_in: sails.config.oauth.tokenLife
+                                }
                               );
                             }
                           }
@@ -210,7 +231,7 @@ server.exchange(
 
 // Exchange refreshToken for access token.
 server.exchange(
-  oauth2orize.exchange.refreshToken(function(
+  oauth2orize.exchange.refreshToken(function (
     client,
     refreshToken,
     scope,
@@ -218,7 +239,9 @@ server.exchange(
   ) {
     console.log("Exchange refreshToken for access token. line 56 scope ");
     console.log(scope);
-    RefreshToken.findOne({ token: refreshToken }, function(err, token) {
+    RefreshToken.findOne({
+      token: refreshToken
+    }, function (err, token) {
       if (err) {
         return done(err);
       }
@@ -229,7 +252,9 @@ server.exchange(
         return done(null, false);
       }
 
-      User.findOne({ id: token.userId }, function(err, user) {
+      User.findOne({
+        id: token.userId
+      }, function (err, user) {
         if (err) {
           return done(err);
         }
@@ -238,38 +263,44 @@ server.exchange(
         }
 
         // Remove Refresh and Access tokens and create new ones
-        RefreshToken.destroy(
-          { userId: user.username, clientId: client.clientId },
-          function(err) {
+        RefreshToken.destroy({
+            userId: user.username,
+            clientId: client.clientId
+          },
+          function (err) {
             if (err) {
               return done(err);
             } else {
-              AccessToken.destroy(
-                { userId: user.username, clientId: client.clientId },
-                function(err) {
+              AccessToken.destroy({
+                  userId: user.username,
+                  clientId: client.clientId
+                },
+                function (err) {
                   if (err) {
                     return done(err);
                   } else {
-                    RefreshToken.create(
-                      { userId: user.username, clientId: client.clientId },
-                      function(err, refreshToken) {
+                    RefreshToken.create({
+                        userId: user.username,
+                        clientId: client.clientId
+                      },
+                      function (err, refreshToken) {
                         if (err) {
                           return done(err);
                         } else {
-                          AccessToken.create(
-                            {
+                          AccessToken.create({
                               userId: user.username,
                               clientId: client.clientId
                             },
-                            function(err, accessToken) {
+                            function (err, accessToken) {
                               if (err) {
                                 return done(err);
                               } else {
                                 done(
                                   null,
                                   accessToken.token,
-                                  refreshToken.token,
-                                  { expires_in: sails.config.oauth.tokenLife }
+                                  refreshToken.token, {
+                                    expires_in: sails.config.oauth.tokenLife
+                                  }
                                 );
                               }
                             }
@@ -290,7 +321,7 @@ server.exchange(
 
 module.exports = {
   http: {
-    customMiddleware: function(app) {
+    customMiddleware: function (app) {
       // Initialize passport
       app.use(passport.initialize());
       app.use(passport.session());
@@ -300,8 +331,10 @@ module.exports = {
       app.get(
         "/oauth/authorize",
         login.ensureLoggedIn(),
-        server.authorize(function(clientId, redirectURI, done) {
-          Client.findOne({ clientId: clientId }, function(err, client) {
+        server.authorize(function (clientId, redirectURI, done) {
+          Client.findOne({
+            clientId: clientId
+          }, function (err, client) {
             if (err) {
               return done(err);
             }
@@ -314,7 +347,7 @@ module.exports = {
             return done(null, client, client.redirectURI);
           });
         }),
-        function(req, res, next) {
+        function (req, res, next) {
           // TRUSTED CLIENT
           // if client is trusted, skip ahead to next,
           // which is the server.decision() function
@@ -345,25 +378,29 @@ module.exports = {
         server.decision(),
         server.errorHandler()
       );
-      app.get("/login", function(req, res) {
-        return res.render("login", { message: "" });
+      app.get("/login", function (req, res) {
+        return res.render("login", {
+          message: ""
+        });
       });
-      app.get("/oauth/logout", function(req, res) {
+      app.get("/oauth/logout", function (req, res) {
         console.log("logout success");
         var cookie = req.cookies;
         for (var prop in cookie) {
           if (!cookie.hasOwnProperty(prop)) {
             continue;
           }
-          req.res.cookie(prop, "", { expires: new Date(0) });
+          req.res.cookie(prop, "", {
+            expires: new Date(0)
+          });
         }
         req.session.destroy();
         return res.redirect("http://192.168.1.93:1339/login");
       });
       //login is cheked in LocalStrategy in config/passport
       // app.post('/login', passport.authenticate('local', { successReturnToOrRedirect: '/', failureRedirect: '/login',failureFlash: true }));
-      app.post("/login", function(req, res, next) {
-        passport.authenticate("local", function(err, user, info) {
+      app.post("/login", function (req, res, next) {
+        passport.authenticate("local", function (err, user, info) {
           if (err) {
             return next(err); // will generate a 500 error
           }
@@ -404,7 +441,7 @@ module.exports = {
         //  server.decision());
         //callback code for client
 
-        server.decision(function(req, done) {
+        server.decision(function (req, done) {
           console.log(
             "   server.decision(function(req,done){ config/oauth2 line 254 "
           );
@@ -416,11 +453,15 @@ module.exports = {
               if (!cookie.hasOwnProperty(prop)) {
                 continue;
               }
-              req.res.cookie(prop, "", { expires: new Date(0) });
+              req.res.cookie(prop, "", {
+                expires: new Date(0)
+              });
             }
             req.session.destroy();
           }
-          done(null, { scope: req.oauth2.req.scope });
+          done(null, {
+            scope: req.oauth2.req.scope
+          });
         })
       );
       /***** OAuth token endPoint *****/

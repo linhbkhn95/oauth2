@@ -39,117 +39,119 @@ passport.use(
         ") BEGIN request!!!"
       );
       try {
-        request(
-          {
-            url: sails.config.bpsUrl + execProcedure,
-            method: "POST",
-            json: {
-              funckey: "fopks_sa.Sp_login",
-              bindvar: {
-                username: username,
-                password: password,
-                tlid: { dir: 3003, type: 2001 },
-                tlfullname: { dir: 3003, type: 2001 },
-                err_code: { dir: 3003, type: 2001 },
-                err_param: { dir: 3003, type: 2001 }
-              }
-            },
-            timeout: sails.config.bpsTimeout
-          },
-          function(err, res) {
-            if (err) {
-              sails.log.error(
-                "Login LocalStrategy Error.:",
-                username,
-                "error",
-                err
-              );
-              return next(err);
-            } else {
-              sails.log.info(
-                "Login LocalStrategy",
-                username,
-                "Result=",
-                res.body
-              );
-              if (parseInt(res.body.EC) != 0) {
-                let message = res.body.EM;
-                ErrDefs.findOne({ ERRNUM: res.body.EC }).exec(
-                  (err, errdefs) => {
-                    if (err) {
-                      rs.EM = "Lỗi thực hiện trên redis";
-                    }
-                    message = "Mã lỗi " + res.body.EC + "-";
-                    if (errdefs) message += errdefs.ERRDESC;
-                    else {
-                      message += " Mã lỗi chưa được khai báo ";
-                    }
+        // request(
+        //   {
+        //     url: sails.config.bpsUrl + execProcedure,
+        //     method: "POST",
+        //     json: {
+        //       funckey: "fopks_sa.Sp_login",
+        //       bindvar: {
+        //         username: username,
+        //         password: password,
+        //         tlid: { dir: 3003, type: 2001 },
+        //         tlfullname: { dir: 3003, type: 2001 },
+        //         err_code: { dir: 3003, type: 2001 },
+        //         err_param: { dir: 3003, type: 2001 }
+        //       }
+        //     },
+        //     timeout: sails.config.bpsTimeout
+        //   },
+          // function(err, res) {
+          //   if (err) {
+          //     sails.log.error(
+          //       "Login LocalStrategy Error.:",
+          //       username,
+          //       "error",
+          //       err
+          //     );
+          //     return next(err);
+          //   } else {
+          //     sails.log.info(
+          //       "Login LocalStrategy",
+          //       username,
+          //       "Result=",
+          //       res.body
+          //     );
+          //     if (parseInt(res.body.EC) != 0) {
+          //       let message = res.body.EM;
+          //       ErrDefs.findOne({ ERRNUM: res.body.EC }).exec(
+          //         (err, errdefs) => {
+          //           if (err) {
+          //             rs.EM = "Lỗi thực hiện trên redis";
+          //           }
+          //           message = "Mã lỗi " + res.body.EC + "-";
+          //           if (errdefs) message += errdefs.ERRDESC;
+          //           else {
+          //             message += " Mã lỗi chưa được khai báo ";
+          //           }
 
-                    return next(null, false, { message: message });
-                  }
-                );
-              } else {
-                if (parseInt(res.body.DT.err_code) != 0) {
-                  sails.log.debug(
-                    "Login LocalStrategy",
-                    username,
-                    "BPS Error=",
-                    res.body.DT.err_code,
-                    " msg=",
-                    res.body.DT.err_param
-                  );
-                  return next(null, false, { message: res.body.DT.err_param });
-                } else {
-                  sails.log.debug(
-                    "Login LocalStrategy",
-                    username,
-                    "Find user in redis cache"
-                  );
+          //           return next(null, false, { message: message });
+          //         }
+          //       );
+          //     } else {
+          //       if (parseInt(res.body.DT.err_code) != 0) {
+          //         sails.log.debug(
+          //           "Login LocalStrategy",
+          //           username,
+          //           "BPS Error=",
+          //           res.body.DT.err_code,
+          //           " msg=",
+          //           res.body.DT.err_param
+          //         );
+          //         return next(null, false, { message: res.body.DT.err_param });
+          //       } else {
+          //         sails.log.debug(
+          //           "Login LocalStrategy",
+          //           username,
+          //           "Find user in redis cache"
+          //         );
                   User.findOne({
                     username: username
                   }).exec(function(err, user) {
                     if (err) {
                       return next(err);
                     }
+
                     if (!user) {
-                      var newuser = {
-                        username: username,
-                        tlid: res.body.DT.tlid,
-                        password: username,
-                        fullname: res.body.DT.tlfullname
-                      };
-                      User.create(newuser).exec(function(err, user) {
-                        if (err) {
-                          sails.log.error(
-                            "Login LocalStrategy Error.:",
-                            username,
-                            "user error.:",
-                            err
-                          );
-                          return next(null, false, {
-                            message: "Không khởi tạo được user!"
-                          });
-                        }
-                        sails.log.info(
-                          "New user created" +
-                            "- username: " +
-                            user.username +
-                            "- tlid: " +
-                            user.tlid +
-                            "- fullname: " +
-                            user.fullname
-                        );
-                        return next(null, user);
-                      });
+                      // var newuser = {
+                      //   username: username,
+                      //   // tlid: res.body.DT.tlid,
+                      //   password: username,
+                      //   // fullname: res.body.DT.tlfullname
+                      // };
+                      // User.create(newuser).exec(function(err, user) {
+                      //   if (err) {
+                      //     sails.log.error(
+                      //       "Login LocalStrategy Error.:",
+                      //       username,
+                      //       "user error.:",
+                      //       err
+                      //     );
+                      //     return next(null, false, {
+                      //       message: "Không khởi tạo được user!"
+                      //     });
+                      //   }
+                      //   sails.log.info(
+                      //     "New user created" +
+                      //       "- username: " +
+                      //       user.username +
+                      //       "- tlid: " +
+                      //       user.tlid +
+                      //       "- fullname: " +
+                      //       user.fullname
+                      //   );
+                      //   return next(null, user);
+                      // });
+                      return next(null, false, { message: 'invalid username or password' });
                     } else {
                       return next(null, user);
                     }
                   });
-                }
-              }
-            }
-          }
-        );
+            //     }
+            //   }
+            // }
+       //   }
+      //  );
       } catch (e) {
         sails.log.error(
           "Login LocalStrategy nextTick Error.:",
